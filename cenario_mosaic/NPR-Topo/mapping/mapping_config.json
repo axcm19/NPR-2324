@@ -28,7 +28,7 @@
     {
       "startingTime": "5 s",
       "maxTime": "700 s",
-      "targetFlow": 1800.0,
+      "targetFlow": 350.0,
       "spawningMode": "CONSTANT",
       "maxNumberVehicles": 500,
       "laneSelectionMode": "BEST",
@@ -37,7 +37,8 @@
       "types": [
         {
           "name": "Car",
-          "weight": 1.0
+          "weight": 1.0,
+	  "applications": [ "org.eclipse.mosaic.app.tutorial.WeatherWarningAppCell", "org.eclipse.mosaic.app.tutorial.SlowDownApp" ]
         }
       ],
       "departConnectionIndex": 0,
@@ -47,7 +48,7 @@
     {
       "startingTime": "5 s",
       "maxTime": "700 s",
-      "targetFlow": 1800.0,
+      "targetFlow": 350.0,
       "spawningMode": "CONSTANT",
       "maxNumberVehicles": 500,
       "laneSelectionMode": "BEST",
@@ -56,7 +57,8 @@
       "types": [
         {
           "name": "Car",
-          "weight": 1.0
+          "weight": 1.0,
+	  "applications": [ "org.eclipse.mosaic.app.tutorial.WeatherWarningAppCell", "org.eclipse.mosaic.app.tutorial.SlowDownApp" ]
         }
       ],
       "departConnectionIndex": 0,
