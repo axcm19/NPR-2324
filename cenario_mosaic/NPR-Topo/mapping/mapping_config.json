@@ -2,6 +2,10 @@
   "prototypes": [
     {
       "name": "Car",
+      "applications": [
+                "EventSendingApp",
+                "EventProcessingApp"
+      ],
       "length": "4.0 m",
       "minGap": "2.5 m",
       "maxSpeed": "70.0 m/s",
@@ -22,7 +26,39 @@
         "decel": 0.0,
         "tau": 0.0
       }
+    },
+    {
+            "name": "TrafficLightCar",
+            "applications": [
+                "VehicleToTrafficLightApp"
+            ],
+            "color": "green"
+    },
+    {
+       "name": "RSU",
+       "applications": [ "RSU_Program" ]
+    },
+    {
+        "name": "TrafficLight",
+        "applications": [
+                "TrafficLightApp"
+         ]
     }
+  ],
+  "rsus": [
+        {
+            "name": "RSU",
+            "position": {
+                "latitude": 41.004693,
+                "longitude": -8.642451
+            }
+        }
+  ],
+  "trafficLights": [
+        {
+            "name": "TrafficLight",
+            "tlGroupId": "443800958"
+        }
   ],
   "vehicles": [
     {
@@ -37,8 +73,7 @@
       "types": [
         {
           "name": "Car",
-          "weight": 1.0,
-	  "applications": [ "org.eclipse.mosaic.app.tutorial.WeatherWarningAppCell", "org.eclipse.mosaic.app.tutorial.SlowDownApp" ]
+          "weight": 1.0
         }
       ],
       "departConnectionIndex": 0,
@@ -56,9 +91,8 @@
       "departSpeedMode": "MAXIMUM",
       "types": [
         {
-          "name": "Car",
-          "weight": 1.0,
-	  "applications": [ "org.eclipse.mosaic.app.tutorial.WeatherWarningAppCell", "org.eclipse.mosaic.app.tutorial.SlowDownApp" ]
+          "name": "TrafficLightCar",
+          "weight": 1.0
         }
       ],
       "departConnectionIndex": 0,
