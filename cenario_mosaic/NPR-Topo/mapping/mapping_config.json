@@ -36,7 +36,9 @@
     },
     {
        "name": "RSU",
-       "applications": [ "RSU_Program" ]
+       "applications": [
+                "RSU_Program"
+       ]
     },
     {
         "name": "TrafficLight",
@@ -49,8 +51,8 @@
         {
             "name": "RSU",
             "position": {
-                "latitude": 41.004693,
-                "longitude": -8.642451
+                "latitude": 41.004708,
+                "longitude": -8.642474
             }
         }
   ],
@@ -66,13 +68,13 @@
       "maxTime": "700 s",
       "targetFlow": 350.0,
       "spawningMode": "CONSTANT",
-      "maxNumberVehicles": 500,
+      "maxNumberVehicles": 5,
       "laneSelectionMode": "BEST",
       "departSpeed": "0.0 m/s",
       "departSpeedMode": "MAXIMUM",
       "types": [
         {
-          "name": "Car",
+          "name": "TrafficLightCar",
           "weight": 1.0
         }
       ],
@@ -91,7 +93,7 @@
       "departSpeedMode": "MAXIMUM",
       "types": [
         {
-          "name": "TrafficLightCar",
+          "name": "Car",
           "weight": 1.0
         }
       ],
