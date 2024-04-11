@@ -4,7 +4,8 @@
       "name": "Car",
       "applications": [
                 "EventSendingApp",
-                "EventProcessingApp"
+                "EventProcessingApp",
+		"VehicleToTrafficLightApp"
       ],
       "length": "4.0 m",
       "minGap": "2.5 m",
@@ -68,14 +69,15 @@
       "maxTime": "700 s",
       "targetFlow": 350.0,
       "spawningMode": "CONSTANT",
-      "maxNumberVehicles": 5,
+      "maxNumberVehicles": 100,
       "laneSelectionMode": "BEST",
       "departSpeed": "0.0 m/s",
       "departSpeedMode": "MAXIMUM",
       "types": [
         {
-          "name": "TrafficLightCar",
-          "weight": 1.0
+          "name": "Car",
+          "weight": 1.0,
+          "color": "green"
         }
       ],
       "departConnectionIndex": 0,
@@ -87,14 +89,15 @@
       "maxTime": "700 s",
       "targetFlow": 350.0,
       "spawningMode": "CONSTANT",
-      "maxNumberVehicles": 500,
+      "maxNumberVehicles": 100,
       "laneSelectionMode": "BEST",
       "departSpeed": "0.0 m/s",
       "departSpeedMode": "MAXIMUM",
       "types": [
         {
           "name": "Car",
-          "weight": 1.0
+          "weight": 1.0,
+	  "color": "yellow"
         }
       ],
       "departConnectionIndex": 0,

@@ -5,17 +5,31 @@ import org.eclipse.mosaic.lib.enums.AdHocChannel;
 import org.eclipse.mosaic.lib.objects.v2x.MessageRouting;
 import org.eclipse.mosaic.lib.util.scheduling.Event;
 import org.eclipse.mosaic.rti.TIME;
+import org.eclipse.mosaic.lib.objects.vehicle.VehicleRoute;
 
 public final class VehicleToTrafficLightApp extends AbstractApplication<VehicleOperatingSystem> {
     private final static long TIME_INTERVAL = TIME.SECOND;
 
     //Use TopoBroadcast instead of GeoBroadcast because latter is not compatible with OMNeT++ or ns-3
     private void sendTopoBroadcastMessage() {
+
+
         final MessageRouting routing = getOperatingSystem()
                 .getAdHocModule()
                 .createMessageRouting()
                 .topoBroadCast();
-        getOs().getAdHocModule().sendV2xMessage(new GreenWaveMsg(routing, TrafficLightApp.SECRET));
+
+        VehicleRoute car_route = getOs().getNavigationModule().getCurrentRoute();
+        String route_id = "";
+
+        if(car_route != null) {
+            route_id = car_route.getId();
+        }
+
+        getLog().infoSimTime(this, "My Route = " + route_id);
+
+        String message_to_send = TrafficLightApp.SECRET + " | " + route_id;
+        getOs().getAdHocModule().sendV2xMessage(new GreenWaveMsg(routing, message_to_send));
         getLog().infoSimTime(this, "Sent secret passphrase");
     }
 

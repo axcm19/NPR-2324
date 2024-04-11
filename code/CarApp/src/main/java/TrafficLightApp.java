@@ -15,9 +15,13 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
     private final static short GREEN_DURATION = 10;
 
     private static final String DEFAULT_PROGRAM = "1";
-    private static final String GREEN_PROGRAM = "0";
+    private static final String GREEN_PROGRAM_R0 = "0";
+    private static final String GREEN_PROGRAM_R1 = "2";
 
     private static final Integer MIN_DISTANCE = 15;
+
+    private int counter_r0 = 0; // vertical
+    private int counter_r1 = 0; // horizontal
 
     @Override
     public void onStartup() {
@@ -32,9 +36,19 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
         getLog().infoSimTime(this, "Shutdown application");
     }
 
-    private void setGreen() {
-        getOs().switchToProgram(GREEN_PROGRAM);
-        getLog().infoSimTime(this, "Setting traffic lights to GREEN");
+    private void setGreen_r0() {
+        getOs().switchToProgram(GREEN_PROGRAM_R0);
+        getLog().infoSimTime(this, "Setting traffic lights to GREEN in r0");
+
+        getOs().getEventManager().addEvent(
+                getOs().getSimulationTime() + GREEN_DURATION * TIME.SECOND,
+                (e) -> setRed()
+        );
+    }
+
+    private void setGreen_r1() {
+        getOs().switchToProgram(GREEN_PROGRAM_R1);
+        getLog().infoSimTime(this, "Setting traffic lights to GREEN in r1");
 
         getOs().getEventManager().addEvent(
                 getOs().getSimulationTime() + GREEN_DURATION * TIME.SECOND,
@@ -49,15 +63,41 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
 
     @Override
     public void onMessageReceived(ReceivedV2xMessage receivedV2xMessage) {
+
+        String secret = "";
+        String route = "";
+
         if (!(receivedV2xMessage.getMessage() instanceof GreenWaveMsg)) {
             return;
         }
-        getLog().infoSimTime(this, "Received GreenWaveMsg");
 
-        if (!((GreenWaveMsg) receivedV2xMessage.getMessage()).getMessage().equals(SECRET)) {
+        String padrao = "\\|\\s*"; // Divide na barra vertical, removendo espaços em branco antes e depois
+
+        // Dividir a frase em secret e route
+        String[] partes = ((GreenWaveMsg) receivedV2xMessage.getMessage()).getMessage().split(padrao);
+
+        if (partes.length == 2) {
+            secret = "" + partes[0].trim(); // Remover espaços em branco antes e depois do secret
+            route = "" + partes[1].trim(); // Remover espaços em branco antes e depois do route
+
+        } else {
+            System.out.println("Formato da frase inválido.");
+        }
+
+        getLog().infoSimTime(this, "Received GreenWaveMsg from {}", route);
+
+        //if (!((GreenWaveMsg) receivedV2xMessage.getMessage()).getMessage().equals(SECRET)) {
+        if (!(secret.equals(SECRET))) {
             return;
         }
         getLog().infoSimTime(this, "Received correct passphrase: {}", SECRET);
+
+        if(route.equals("r_0")){
+            counter_r0++;
+        }
+        if(route.equals("r_1")){
+            counter_r1++;
+        }
 
         Validate.notNull(receivedV2xMessage.getMessage().getRouting().getSource().getSourcePosition(),
                 "The source position of the sender cannot be null");
@@ -67,8 +107,15 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
             return;
         }
 
-        if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId())) {
-            setGreen();
+        if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && counter_r0 >= counter_r1) {
+            getLog().infoSimTime(this, "Counter R0 = {} , Counter R1 = {}", counter_r0, counter_r1);
+            setGreen_r0();
+            counter_r0 = 0;
+        }
+        else if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && counter_r0 < counter_r1) {
+            getLog().infoSimTime(this, "Counter R0 = {} , Counter R1 = {}", counter_r0, counter_r1);
+            setGreen_r1();
+            counter_r1 = 0;
         }
 
     }
