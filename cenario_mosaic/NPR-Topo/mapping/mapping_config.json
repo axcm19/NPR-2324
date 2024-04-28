@@ -3,9 +3,9 @@
     {
       "name": "Car",
       "applications": [
-                "EventSendingApp",
-                "EventProcessingApp",
-		"VehicleToTrafficLightApp"
+                "src.main.java.EventSendingApp",
+                "src.main.java.EventProcessingApp",
+		"src.main.java.VehicleToTrafficLightApp"
       ],
       "length": "4.0 m",
       "minGap": "2.5 m",
@@ -31,20 +31,20 @@
     {
             "name": "TrafficLightCar",
             "applications": [
-                "VehicleToTrafficLightApp"
+                "src.main.java.VehicleToTrafficLightApp"
             ],
             "color": "green"
     },
     {
        "name": "RSU",
        "applications": [
-                "RSU_Program"
+                "src.main.java.RSU_Program"
        ]
     },
     {
         "name": "TrafficLight",
         "applications": [
-                "TrafficLightApp"
+                "src.main.java.TrafficLightApp"
          ]
     }
   ],

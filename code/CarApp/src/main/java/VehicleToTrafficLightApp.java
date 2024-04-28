@@ -1,3 +1,5 @@
+package src.main.java;
+
 import org.eclipse.mosaic.fed.application.ambassador.simulation.communication.AdHocModuleConfiguration;
 import org.eclipse.mosaic.fed.application.app.AbstractApplication;
 import org.eclipse.mosaic.fed.application.app.api.os.VehicleOperatingSystem;
@@ -12,7 +14,6 @@ public final class VehicleToTrafficLightApp extends AbstractApplication<VehicleO
 
     //Use TopoBroadcast instead of GeoBroadcast because latter is not compatible with OMNeT++ or ns-3
     private void sendTopoBroadcastMessage() {
-
 
         final MessageRouting routing = getOperatingSystem()
                 .getAdHocModule()

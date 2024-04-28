@@ -1,3 +1,6 @@
+package src.main.java;
+
+import org.apache.commons.lang3.Validate;
 import org.eclipse.mosaic.fed.application.ambassador.simulation.communication.CamBuilder;
 import org.eclipse.mosaic.fed.application.ambassador.simulation.communication.ReceivedAcknowledgement;
 import org.eclipse.mosaic.fed.application.ambassador.simulation.communication.ReceivedV2xMessage;
@@ -8,17 +11,15 @@ import org.eclipse.mosaic.interactions.communication.V2xMessageTransmission;
 import org.eclipse.mosaic.lib.util.scheduling.Event;
 import org.eclipse.mosaic.rti.TIME;
 
-import org.apache.commons.lang3.Validate;
-
 public final class TrafficLightApp extends AbstractApplication<TrafficLightOperatingSystem> implements CommunicationApplication {
     public final static String SECRET = "open sesame!";
     private final static short GREEN_DURATION = 10;
 
-    private static final String DEFAULT_PROGRAM = "1";
+    static final String DEFAULT_PROGRAM = "1";
     private static final String GREEN_PROGRAM_R0 = "0";
     private static final String GREEN_PROGRAM_R1 = "2";
 
-    private static final Integer MIN_DISTANCE = 15;
+    static final Integer MIN_DISTANCE = 100;
 
     private int counter_r0 = 0; // vertical
     private int counter_r1 = 0; // horizontal
@@ -67,10 +68,11 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
         String secret = "";
         String route = "";
 
-        if (!(receivedV2xMessage.getMessage() instanceof GreenWaveMsg)) {
+        if (!(receivedV2xMessage.getMessage() instanceof RSUMsg)) {
             return;
         }
 
+        /*
         String padrao = "\\|\\s*"; // Divide na barra vertical, removendo espaços em branco antes e depois
 
         // Dividir a frase em secret e route
@@ -92,12 +94,16 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
         }
         getLog().infoSimTime(this, "Received correct passphrase: {}", SECRET);
 
+
         if(route.equals("r_0")){
             counter_r0++;
         }
         if(route.equals("r_1")){
             counter_r1++;
         }
+
+        */
+        getLog().infoSimTime(this, "Received message from RSU {}", receivedV2xMessage.getMessage().toString());
 
         Validate.notNull(receivedV2xMessage.getMessage().getRouting().getSource().getSourcePosition(),
                 "The source position of the sender cannot be null");
@@ -107,15 +113,28 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
             return;
         }
 
-        if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && counter_r0 >= counter_r1) {
+        /*
+        //if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && counter_r0 >= counter_r1) {
+        if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && counter_r0 >= 10) {
             getLog().infoSimTime(this, "Counter R0 = {} , Counter R1 = {}", counter_r0, counter_r1);
             setGreen_r0();
             counter_r0 = 0;
         }
-        else if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && counter_r0 < counter_r1) {
+        //else if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && counter_r0 < counter_r1) {
+        else if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && counter_r1 >= 10) {
             getLog().infoSimTime(this, "Counter R0 = {} , Counter R1 = {}", counter_r0, counter_r1);
             setGreen_r1();
             counter_r1 = 0;
+        }*/
+
+
+        if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && receivedV2xMessage.getMessage().toString().equals("0")) {
+            getLog().infoSimTime(this, "Changing to program 0");
+            setGreen_r0();
+        }
+        else if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && receivedV2xMessage.getMessage().toString().equals("2")) {
+            getLog().infoSimTime(this, "Changing to program 2");
+            setGreen_r1();
         }
 
     }

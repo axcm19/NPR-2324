@@ -100,8 +100,8 @@
     </edge>
 
     <tlLogic id="443800958" type="static" programID="0" offset="0">
-        <phase duration="42" state="GGGrrr"/>
-        <phase duration="3"  state="yyyrrr"/>
+        <phase duration="62" state="GGGrrr"/>
+        <phase duration="10"  state="yyyrrr"/>
     </tlLogic>
 
     <junction id="441803022" type="dead_end" x="350.24" y="533.47" incLanes="37842092_441803451_441803022_0 37842092_441803451_441803022_1" intLanes="" shape="350.23,527.07 350.24,533.47"/>

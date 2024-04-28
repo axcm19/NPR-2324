@@ -1,8 +1,10 @@
+package src.main.java;
+
 import org.eclipse.mosaic.lib.objects.v2x.EncodedPayload;
 import org.eclipse.mosaic.lib.objects.v2x.MessageRouting;
 import org.eclipse.mosaic.lib.objects.v2x.V2xMessage;
 
-import javax.annotation.Nonnull;
+//import javax.annotation.Nonnull;
 
 public final class GreenWaveMsg extends V2xMessage {
     private final String         message;
@@ -19,13 +21,14 @@ public final class GreenWaveMsg extends V2xMessage {
         return message;
     }
 
-    @Nonnull
-    @Override
     public EncodedPayload getPayload() {
-        return payload;
+        return this.payload;
     }
 
-    @Override
+    public EncodedPayload getPayLoad() {
+        return null;
+    }
+
     public String toString() {
         final StringBuffer sb = new StringBuffer("GreenWaveMsg{");
         sb.append("message='").append(message).append('\'');

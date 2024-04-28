@@ -1,3 +1,5 @@
+package src.main.java;
+
 /**
  * Example class used to demonstrate the communication
  * between applications that run on the same vehicle.

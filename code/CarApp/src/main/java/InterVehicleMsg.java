@@ -1,4 +1,5 @@
-import javax.annotation.Nonnull;
+package src.main.java;
+
 import org.eclipse.mosaic.lib.geo.GeoPoint;
 import org.eclipse.mosaic.lib.objects.v2x.EncodedPayload;
 import org.eclipse.mosaic.lib.objects.v2x.MessageRouting;
@@ -20,6 +21,10 @@ public final class InterVehicleMsg extends V2xMessage {
 
     public EncodedPayload getPayload() {
         return this.payload;
+    }
+
+    public EncodedPayload getPayLoad() {
+        return null;
     }
 
     public String toString() {

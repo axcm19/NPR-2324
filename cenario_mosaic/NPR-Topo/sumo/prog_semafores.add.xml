@@ -1,9 +1,12 @@
 <additional>
   <tlLogic id="443800958" programID="1" offset="0" type="static">
-    <phase duration="31" state="rrrrrr"/>
+	<phase duration="32" state="GGGrrr"/>
+        <phase duration="10"  state="yyyrrr"/>
+        <phase duration="32" state="rrrGGG"/>
+        <phase duration="10"  state="rrryyy"/>
   </tlLogic>
   <tlLogic id="443800958" type="static" programID="2" offset="0">
-        <phase duration="42" state="rrrGGG"/>
-        <phase duration="3"  state="rrryyy"/>
+        <phase duration="62" state="rrrGGG"/>
+        <phase duration="10"  state="rrryyy"/>
   </tlLogic>
 </additional>
