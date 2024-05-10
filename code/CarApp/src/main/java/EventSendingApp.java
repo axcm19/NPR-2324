@@ -12,12 +12,13 @@ import org.eclipse.mosaic.fed.application.app.api.os.VehicleOperatingSystem;
 import org.eclipse.mosaic.interactions.communication.V2xMessageTransmission;
 import org.eclipse.mosaic.lib.enums.AdHocChannel;
 import org.eclipse.mosaic.lib.enums.SensorType;
-import org.eclipse.mosaic.lib.geo.GeoPoint;
+import org.eclipse.mosaic.lib.geo.CartesianPoint;
 import org.eclipse.mosaic.lib.objects.v2x.MessageRouting;
 import org.eclipse.mosaic.lib.objects.vehicle.VehicleData;
 import org.eclipse.mosaic.lib.util.scheduling.Event;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
 import java.util.List;
 
 public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem> implements VehicleApplication, CommunicationApplication {
@@ -26,13 +27,15 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
      */
     private final static int MAX_ID = 1000;
 
+    private HashMap<String, String> vizinhos = new HashMap<>();   // key -> name_carro ; value -> position_carro
+
     @Override
     public void onStartup() {
         getLog().infoSimTime(this, "Initialize application");
         getOs().getAdHocModule().enable(new AdHocModuleConfiguration()
                 .addRadio()
                 .channel(AdHocChannel.CCH)
-                .power(50)
+                .power(16)
                 .create());
         getLog().infoSimTime(this, "Activated AdHoc Module");
     }
@@ -57,8 +60,18 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
                 .createMessageRouting()
                 .topoBroadCast();
 
+        String name = getOs().getVehicleData().getName();
+        String lane = getOs().getVehicleData().getLaneAreaId(); // devolve NULL
+        CartesianPoint position = getOs().getVehicleData().getPosition().toCartesian();
 
-        GeoPoint message_to_send = getOs().getVehicleData().getPosition();
+        double pos_x = position.getX();
+        double pos_y = position.getY();
+
+        String position_string = "(" + pos_x + ", " + pos_y + ")";
+
+        String message_to_send = name + " | " + lane + " | " + position_string;
+
+        getLog().infoSimTime(this, "Sent message to others cars = '{}'", message_to_send);
 
         getOs().getAdHocModule().sendV2xMessage(new InterVehicleMsg(routing, message_to_send));
     }
@@ -66,13 +79,34 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
     @Override
     public void onMessageReceived(ReceivedV2xMessage receivedV2xMessage) {
 
+        String position = "";
+        String id_carro = "";
+        String lane = "";
+
+
         if (!(receivedV2xMessage.getMessage() instanceof InterVehicleMsg)) {
             return;
         }
 
-        String name = receivedV2xMessage.getMessage().getRouting().getSource().getSourceName();
-        String position = receivedV2xMessage.getMessage().toString();
-        getLog().infoSimTime(this, "Received V2X Message from {} in {}", name, position);
+        String padrao = "\\|"; // Divide na barra vertical, removendo espaços em branco antes e depois
+
+        // Dividir a frase em secret e route
+        String[] partes = ((InterVehicleMsg) receivedV2xMessage.getMessage()).getMessage().split(padrao);
+
+        if (partes.length == 2) {
+            id_carro = "" + partes[0].trim(); // Remover espaços em branco antes e depois do secret
+            lane = "" + partes[1].trim(); // Remover espaços em branco antes e depois do route
+            position = "" + partes[2].trim(); // Remover espaços em branco antes e depois do route
+
+        } else {
+            System.out.println("Formato da frase inválido.");
+        }
+
+        vizinhos.put(id_carro, position);
+
+        String message = receivedV2xMessage.getMessage().toString();
+        getLog().infoSimTime(this, "Received InterVehicleMsg  = '{}'", message);
+        getLog().infoSimTime(this, "My neighbours  = '{}'", vizinhos.toString());
     }
 
     @Override

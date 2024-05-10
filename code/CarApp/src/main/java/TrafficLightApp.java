@@ -19,7 +19,7 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
     private static final String GREEN_PROGRAM_R0 = "0";
     private static final String GREEN_PROGRAM_R1 = "2";
 
-    static final Integer MIN_DISTANCE = 100;
+    static final Integer MIN_DISTANCE = 10;
 
     private int counter_r0 = 0; // vertical
     private int counter_r1 = 0; // horizontal

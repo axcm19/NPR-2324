@@ -1,22 +1,21 @@
 package src.main.java;
 
-import org.eclipse.mosaic.lib.geo.GeoPoint;
 import org.eclipse.mosaic.lib.objects.v2x.EncodedPayload;
 import org.eclipse.mosaic.lib.objects.v2x.MessageRouting;
 import org.eclipse.mosaic.lib.objects.v2x.V2xMessage;
 
 public final class InterVehicleMsg extends V2xMessage {
-    private final GeoPoint senderPosition;
     private final EncodedPayload payload = new EncodedPayload(16L, 128L);
     private static final long minLen = 128L;
+    private String info;
 
-    public InterVehicleMsg(MessageRouting routing, GeoPoint senderPosition) {
+    public InterVehicleMsg(MessageRouting routing, String msg) {
         super(routing);
-        this.senderPosition = senderPosition;
+        this.info = msg;
     }
 
-    public GeoPoint getSenderPosition() {
-        return this.senderPosition;
+    public String getMessage() {
+        return info;
     }
 
     public EncodedPayload getPayload() {
@@ -27,10 +26,8 @@ public final class InterVehicleMsg extends V2xMessage {
         return null;
     }
 
+
     public String toString() {
-        StringBuffer sb = new StringBuffer("InterVehicleMsg{");
-        sb.append("senderPosition=").append(this.senderPosition);
-        sb.append('}');
-        return sb.toString();
+        return info;
     }
 }

@@ -25,7 +25,7 @@
     },
     "federates": {
         "application": true,
-        "environment": true,
+        "environment": false,
         "cell": false,
         "ns3": false,
         "omnetpp": false,

@@ -26,7 +26,7 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
 
    private void sendAdHocBroadcast() {
       MessageRouting routing = ((RoadSideUnitOperatingSystem)this.getOs()).getAdHocModule().createMessageRouting().viaChannel(AdHocChannel.CCH).topoBroadCast();
-      InterVehicleMsg message = new InterVehicleMsg(routing, ((RoadSideUnitOperatingSystem)this.getOs()).getPosition());
+      InterVehicleMsg message = new InterVehicleMsg(routing, ((RoadSideUnitOperatingSystem)this.getOs()).getPosition().toString());
       ((RoadSideUnitOperatingSystem)this.getOs()).getAdHocModule().sendV2xMessage(message);
    }
 
