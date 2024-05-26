@@ -1,0 +1,51 @@
+{
+  "regions": [
+        {
+            "id": "tuberlin",
+            "area": {
+                "nw": { "lon": -8.6447, "lat": 41.0071 },
+                "se": { "lon": -8.6384, "lat": 40.9995 }
+            },
+            "uplink": {
+                "delay": {
+                    "type": "SimpleRandomDelay",
+                    "steps": 4,
+                    "minDelay": "50 ms",
+                    "maxDelay": "200 ms"
+                },
+                "transmission": {
+                    "lossProbability": 0.8,
+                    "maxRetries": 2
+                },
+                "capacity": 28000000
+            },
+            "downlink": {
+                "unicast": {
+                    "delay": {
+                        "type": "SimpleRandomDelay",
+                        "steps": 3,
+                        "minDelay": "100 ms",
+                        "maxDelay": "200 ms"
+                    },
+                    "transmission": {
+                        "lossProbability": 0.8,
+                        "maxRetries": 2
+                    }
+                },
+                "multicast": {
+                    "delay": {
+                        "type": "SimpleRandomDelay",
+                        "steps": 3,
+                        "minDelay": "120 ms",
+                        "maxDelay": "220 ms"
+                    },
+                    "transmission": {
+                        "lossProbability": 0.8
+                    },
+                    "usableCapacity": 0.6
+                },
+                "capacity": 42200000
+            }
+        }
+    ]
+}
