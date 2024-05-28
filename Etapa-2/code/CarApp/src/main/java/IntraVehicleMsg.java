@@ -17,7 +17,7 @@ public final class IntraVehicleMsg {
      * Arbitrary id for that message which can be assigned according
      * to the actual needs of the application.
      */
-    private final int    id;
+    private final int id;
 
     public IntraVehicleMsg(String origin, int id) {
         this.origin = origin;

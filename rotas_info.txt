@@ -1,0 +1,2 @@
+r0 - verde - vertical
+r1 - amarelo - horizontal

@@ -15,14 +15,14 @@ import org.eclipse.mosaic.lib.enums.AdHocChannel;
 import org.eclipse.mosaic.lib.enums.SensorType;
 import org.eclipse.mosaic.lib.geo.CartesianPoint;
 import org.eclipse.mosaic.lib.objects.v2x.MessageRouting;
-import org.eclipse.mosaic.lib.objects.vehicle.SurroundingVehicle;
 import org.eclipse.mosaic.lib.objects.vehicle.VehicleData;
-import org.eclipse.mosaic.lib.objects.vehicle.VehicleRoute;
 import org.eclipse.mosaic.lib.util.scheduling.Event;
 
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem> implements VehicleApplication, CommunicationApplication {
     /**
@@ -30,12 +30,16 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
      */
     private final static int MAX_ID = 1000;
 
-    public static boolean ackRSU = false;
+    //private HashMap<String, String> vizinhos = new HashMap<>();   // key -> name_carro ; value -> position_carro
 
-    private HashMap<String, String> vizinhos = new HashMap<>();   // key -> name_carro ; value -> position_carro
+    /*
+    ##########################################################################################################################################3
+    */
 
     @Override
     public void onStartup() {
+        getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+
         getLog().infoSimTime(this, "Initialize application");
         getOs().getAdHocModule().enable(new AdHocModuleConfiguration()
                 .addRadio()
@@ -43,34 +47,21 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
                 .power(16)
                 .create());
         getLog().infoSimTime(this, "Activated AdHoc Module");
+
+        getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
     }
 
-    private boolean isInFront(CartesianPoint mypos, CartesianPoint otherPos, double currentDirection) {
-        // Vetor da posição do veículo atual ao carro vizinho
-        double dx = otherPos.getX() - mypos.getX();
-        double dy = otherPos.getY() - mypos.getY();
-
-        // Ângulo do vetor em relação ao norte
-        double angleToCar = Math.toDegrees(Math.atan2(dy, dx));
-        if (angleToCar < 0) {
-            angleToCar += 360;
-        }
-
-        // Verifique se o ângulo está dentro de um intervalo de 45 graus da direção do veículo
-        double minAngle = (currentDirection - 45 + 360) % 360;
-        double maxAngle = (currentDirection + 45) % 360;
-
-        if (minAngle > maxAngle) {
-            // O intervalo cruza o norte (0 graus)
-            return angleToCar >= minAngle || angleToCar <= maxAngle;
-        } else {
-            return angleToCar >= minAngle && angleToCar <= maxAngle;
-        }
-    }
+    /*
+    ##########################################################################################################################################3
+    */
 
     @Override
     public void onVehicleUpdated(/*@Nullable*/ VehicleData previousVehicleData, /*@Nonnull*/ VehicleData updatedVehicleData) {
         final List<? extends Application> applications = getOs().getApplications();
+
+
+        /*------------------------------------------------------------------------------------------*/
+
         final IntraVehicleMsg message = new IntraVehicleMsg(getOs().getId(), getRandom().nextInt(0, MAX_ID));
 
         // Example usage for how to detect sensor readings
@@ -88,20 +79,35 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
                 .createMessageRouting()
                 .topoBroadCast();
 
-        String name = getOs().getVehicleData().getName();
+        String name = Objects.requireNonNull(getOs().getVehicleData()).getName();
         String lane = getOs().getVehicleData().getLaneAreaId(); // devolve NULL
         CartesianPoint position = getOs().getVehicleData().getPosition().toCartesian();
 
-        double pos_x = position.getX();
-        double pos_y = position.getY();
-
-        String position_string = "(" + pos_x + ", " + pos_y + ")";
-
-        String message_to_send = name + " | " + lane + " | " + position_string;
+        String message_to_send = name + " | " + position;
 
         getLog().infoSimTime(this, "Sent message to others cars = '{}'", message_to_send);
 
         getOs().getAdHocModule().sendV2xMessage(new InterVehicleMsg(routing, message_to_send));
+
+        /*------------------------------------------------------------------------------------------*/
+    }
+
+    /*
+    ##########################################################################################################################################3
+    */
+
+    private void sendVizinho(String id, String pos) {
+        getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+
+        final MessageRouting routing = getOperatingSystem()
+                .getAdHocModule()
+                .createMessageRouting()
+                .topoCast(getOs().getId(), 1);  // mensagem para ele proprio
+
+        getOs().getAdHocModule().sendV2xMessage(new SendVizinhoMsg(routing, id, pos));
+        getLog().infoSimTime(this, "Sent message to myself");
+
+        getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
     }
 
     @Override
@@ -111,17 +117,14 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
         String id_carro = "";
         String lane = "";
 
-
-        if (receivedV2xMessage.getMessage() instanceof RSUMsg && receivedV2xMessage.getMessage().toString().equals("ACK")) {
-            // quando recebe da RSU
-
-            getLog().infoSimTime(this, "Received ACK from RSU at ", getOs().getSimulationTime());
-            ackRSU = true;
-
-            return;
-        }
-
         if(receivedV2xMessage.getMessage() instanceof InterVehicleMsg) {
+            getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+
+            //if(receivedV2xMessage.getMessage().equals())
+
+            String message = receivedV2xMessage.getMessage().toString();
+            getLog().infoSimTime(this, "Received InterVehicleMsg = '{}'", message);
+
 
             String padrao = "\\|"; // Divide na barra vertical, removendo espaços em branco antes e depois
 
@@ -130,59 +133,24 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
 
             if (partes.length == 2) {
                 id_carro = "" + partes[0].trim(); // Remover espaços em branco antes e depois do secret
-                lane = "" + partes[1].trim(); // Remover espaços em branco antes e depois do route
-                position = "" + partes[2].trim(); // Remover espaços em branco antes e depois do route
-
+                //lane = "" + partes[1].trim(); // Remover espaços em branco antes e depois do route
+                position = "" + partes[1].trim(); // Remover espaços em branco antes e depois do route
+                getLog().infoSimTime(this, "Position = {}", position);
             } else {
                 System.out.println("Formato da frase inválido.");
             }
 
-            vizinhos.put(id_carro, position);
-
-            String message = receivedV2xMessage.getMessage().toString();
-            getLog().infoSimTime(this, "Received InterVehicleMsg  = '{}'", message);
+            //vizinhos.put(id_carro, position);
+            sendVizinho(id_carro, position);
 
             //--------------------------------------------------------------------
-            // reencaminha a mensagem para o que estiver mais longe dele até chegar à RSU
-
-            List<SurroundingVehicle> vizinhos = getOs().getVehicleData().getVehiclesInSight();
-            CartesianPoint mypos = getOs().getVehicleData().getPosition().toCartesian();
-            double temp = 0;
-
-            double currentDirection = getOs().getVehicleData().getHeading();
-
-            String carroMaisLonge = "";    // carro mais proximo da RSU dentro da range do carro
-
-            for (SurroundingVehicle car : vizinhos) {
-                CartesianPoint pos = car.getGeographicPosition().toCartesian();
-
-                if (pos.distanceTo(mypos) >= temp && isInFront(mypos, pos, currentDirection)) {
-                    temp = pos.distanceTo(mypos);
-                    carroMaisLonge = car.getId();
-                }
-            }
-
-            final MessageRouting routing = getOperatingSystem()
-                    .getAdHocModule()
-                    .createMessageRouting()
-                    .topoCast(carroMaisLonge, 1);
-
-            VehicleRoute car_route = getOs().getNavigationModule().getCurrentRoute();
-            String route_id = "";
-
-            if (car_route != null) {
-                route_id = car_route.getId();
-            }
-
-            getLog().infoSimTime(this, "My Route = " + route_id);
-
-            String message_to_send = TrafficLightApp.SECRET + " | " + route_id;
-            getOs().getAdHocModule().sendV2xMessage(new InterVehicleMsg(routing, message_to_send));
-            getLog().infoSimTime(this, "Sent secret passphrase");
-
-            //--------------------------------------------------------------------
+            getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
         }
     }
+
+    /*
+    ##########################################################################################################################################3
+    */
 
     @Override
     public void processEvent(Event event) throws Exception {
@@ -191,7 +159,9 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
 
     @Override
     public void onShutdown() {
+        getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
         getLog().infoSimTime(this, "Shutdown application");
+        getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
     }
 
     @Override
@@ -205,5 +175,9 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
     @Override
     public void onMessageTransmitted(V2xMessageTransmission v2xMessageTransmission) {
     }
+
+    /*
+    ##########################################################################################################################################3
+    */
 
 }

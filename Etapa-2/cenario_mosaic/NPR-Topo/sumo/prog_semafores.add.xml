@@ -9,4 +9,7 @@
         <phase duration="62" state="rrrGGG"/>
         <phase duration="10"  state="rrryyy"/>
   </tlLogic>
+  <tlLogic id="443800958" programID="3" offset="0" type="static">
+	<phase duration="32" state="rrrrrr"/>
+  </tlLogic>
 </additional>
