@@ -1,4 +1,4 @@
-package src.main.java;//import InterVehicleMsg;
+package src.main.java;
 
 import org.apache.commons.lang3.Validate;
 import org.eclipse.mosaic.fed.application.ambassador.simulation.communication.AdHocModuleConfiguration;
@@ -10,6 +10,7 @@ import org.eclipse.mosaic.fed.application.app.api.CommunicationApplication;
 import org.eclipse.mosaic.fed.application.app.api.os.RoadSideUnitOperatingSystem;
 import org.eclipse.mosaic.interactions.communication.V2xMessageTransmission;
 import org.eclipse.mosaic.lib.enums.AdHocChannel;
+import org.eclipse.mosaic.lib.geo.CartesianPoint;
 import org.eclipse.mosaic.lib.objects.v2x.MessageRouting;
 import org.eclipse.mosaic.lib.util.scheduling.Event;
 import org.eclipse.mosaic.lib.util.scheduling.EventProcessor;
@@ -21,9 +22,27 @@ import static src.main.java.TrafficLightApp.*;
 public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem> implements CommunicationApplication {
 
    private static final long TIME_INTERVAL = 2000000000L;
-   private HashMap<String, Set<String>> carros = new HashMap<>();   // key -> id_route ; value -> set de ids de carros
-   private Set<String> temp = new HashSet<>();   // value -> set de ids de todos os carros que já passaram
-   final Integer MIN_DISTANCE_RSU = 20;
+   private final HashMap<String, Set<String>> carros = new HashMap<>();   // key -> id_route ; value -> set de ids de carros
+   private final Set<String> temp = new HashSet<>();   // value -> set de ids de todos os carros que já passaram
+   static final Integer MIN_DISTANCE_RSU = 20;
+
+   static CartesianPoint RSU_pos;
+
+   /*
+    ##########################################################################################################################################3
+    */
+
+   private void RSU_position() {
+      RSU_pos = getOs().getPosition().toCartesian();
+   }
+
+   /*
+    ##########################################################################################################################################3
+    */
+
+   private static CartesianPoint get_RSU_position() {
+      return RSU_pos;
+   }
 
    /*
     ##########################################################################################################################################3
@@ -32,7 +51,7 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
    private void sendAdHocBroadcast() {
       MessageRouting routing = ((RoadSideUnitOperatingSystem)this.getOs()).getAdHocModule().createMessageRouting().viaChannel(AdHocChannel.CCH).topoBroadCast();
       RSUMsg message = new RSUMsg(routing, ((RoadSideUnitOperatingSystem)this.getOs()).getPosition().toString());
-      //((RoadSideUnitOperatingSystem)this.getOs()).getAdHocModule().sendV2xMessage(message);
+      ((RoadSideUnitOperatingSystem)this.getOs()).getAdHocModule().sendV2xMessage(message);
    }
 
    /*
@@ -40,11 +59,27 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
     */
 
    public void sample() {
-      getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
-      ((RoadSideUnitOperatingSystem)this.getOs()).getEventManager().addEvent(((RoadSideUnitOperatingSystem)this.getOs()).getSimulationTime() + 2000000000L, new EventProcessor[]{this});
-      this.getLog().infoSimTime(this, "Sending out AdHoc broadcast", new Object[0]);
-      this.sendAdHocBroadcast();
-      getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+      ((RoadSideUnitOperatingSystem)this.getOs()).getEventManager().addEvent(((RoadSideUnitOperatingSystem)this.getOs()).getSimulationTime() + TIME_INTERVAL, new EventProcessor[]{this});
+   }
+
+   public void checkCounters(){
+      if(!this.carros.isEmpty()) {
+
+         int counter_r0 = this.carros.get("r_0").size();
+         int counter_r1 = this.carros.get("r_1").size();
+
+         getLog().infoSimTime(this, "Counter R0 = {} , Counter R1 = {}", counter_r0, counter_r1);
+
+         if (1 <= counter_r0 && counter_r1 <= counter_r0) {
+            sendTopoCastMessage("tl_0", 1, "0");
+            this.carros.get("r_0").clear();
+            getLog().infoSimTime(this, "Cleared: Counter R0 = {} , Counter R1 = {}", this.carros.get("r_0").size(), counter_r1);
+         } else if (1 <= counter_r1) {
+            sendTopoCastMessage("tl_0", 1, "2");
+            this.carros.get("r_1").clear();
+            getLog().infoSimTime(this, "Cleared: Counter R0 = {} , Counter R1 = {}", counter_r0, this.carros.get("r_1").size());
+         }
+      }
    }
 
    /*
@@ -58,10 +93,12 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
       ((RoadSideUnitOperatingSystem)this.getOs()).getAdHocModule().enable((new AdHocModuleConfiguration()).addRadio().channel(AdHocChannel.CCH).power(50.0D).create());
       this.getLog().infoSimTime(this, "Activated WLAN Module", new Object[0]);
       this.sample();
-      Set r0_cars = new HashSet<String>();
-      Set r1_cars = new HashSet<String>();
+      Set<String> r0_cars = new HashSet<>();
+      Set<String> r1_cars = new HashSet<>();
       this.carros.put("r_0", r0_cars);
       this.carros.put("r_1", r1_cars);
+
+      RSU_position();
 
       getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
    }
@@ -78,6 +115,7 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
 
    public void processEvent(Event event) throws Exception {
       this.sample();
+      checkCounters();
    }
 
    /*
@@ -125,8 +163,6 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
    public void onMessageReceived(ReceivedV2xMessage receivedV2xMessage) {
       getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
 
-
-
       // validar se a posição do carro está dentro do range da RSU
       Validate.notNull(receivedV2xMessage.getMessage().getRouting().getSource().getSourcePosition(),
               "The source position of the sender cannot be null");
@@ -140,9 +176,6 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
          String secret = "";
          String route = "";
          String id_carro = "";
-
-
-         //id_carro = receivedV2xMessage.getMessage().getRouting().getSource().getSourceName();
 
          if (!(receivedV2xMessage.getMessage() instanceof GreenWaveMsg)) {
             return;
@@ -168,9 +201,6 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
             return;
          }
 
-         getLog().infoSimTime(this, "Received GreenWaveMsg from {}", route);
-
-         //if (!((GreenWaveMsg) receivedV2xMessage.getMessage()).getMessage().equals(SECRET)) {
          if (!(secret.equals(SECRET))) {
             return;
          }
@@ -187,26 +217,26 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
 
          // só envia a mensagem para o carro se este estiver dentro do range (depois de passar pelo IF anterior)
          getLog().infoSimTime(this, "Sending ACK to {}", id_carro);
-         sendTopoCastMessage(id_carro, 1, "ACK");
+         sendTopoCastMessage(id_carro, 4, "ACK");
 
+         /*
          int counter_r0 = carros.get("r_0").size();
          int counter_r1 = carros.get("r_1").size();
 
          getLog().infoSimTime(this, "Counter R0 = {} , Counter R1 = {}", counter_r0, counter_r1);
 
          if (5 <= counter_r0 && counter_r1 < counter_r0) {
-            //sendTopoBroadcastMessage("0");
             sendTopoCastMessage("tl_0", 1, "0");
             carros.get("r_0").clear();
             getLog().infoSimTime(this, "Cleared: Counter R0 = {} , Counter R1 = {}", carros.get("r_0").size(), counter_r1);
          }
-         //else if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && counter_r0 < counter_r1) {
-         else if (5 <= counter_r1 && counter_r1 > counter_r0) {
-            //sendTopoBroadcastMessage("2");
+
+         else if (5 <= counter_r1) {
             sendTopoCastMessage("tl_0", 1, "2");
             carros.get("r_1").clear();
             getLog().infoSimTime(this, "Cleared: Counter R0 = {} , Counter R1 = {}", counter_r0, carros.get("r_1").size());
          }
+         */
       }
 
       getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");

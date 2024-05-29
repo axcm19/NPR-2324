@@ -12,7 +12,7 @@ import org.eclipse.mosaic.lib.util.scheduling.Event;
 import org.eclipse.mosaic.rti.TIME;
 
 public final class TrafficLightApp extends AbstractApplication<TrafficLightOperatingSystem> implements CommunicationApplication {
-    public final static String SECRET = "open sesame!";
+    public final static String SECRET = "ABRE!";
     private final static short GREEN_DURATION = 10;
 
     static final String DEFAULT_PROGRAM = "3";
@@ -20,9 +20,6 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
     private static final String GREEN_PROGRAM_R1 = "2";
 
     final Integer MIN_DISTANCE = 10;
-
-    private int counter_r0 = 0; // vertical
-    private int counter_r1 = 0; // horizontal
 
     /*
     ##########################################################################################################################################3
@@ -103,12 +100,10 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
     @Override
     public void onMessageReceived(ReceivedV2xMessage receivedV2xMessage) {
 
-        String secret = "";
-        String route = "";
-
         if (!(receivedV2xMessage.getMessage() instanceof RSUMsg)) {
             return;
         }
+
 
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
 

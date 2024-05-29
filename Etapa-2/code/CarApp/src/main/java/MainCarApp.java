@@ -13,6 +13,7 @@ import org.eclipse.mosaic.lib.enums.AdHocChannel;
 import org.eclipse.mosaic.lib.geo.CartesianPoint;
 import org.eclipse.mosaic.lib.geo.MutableCartesianPoint;
 import org.eclipse.mosaic.lib.objects.v2x.MessageRouting;
+import org.eclipse.mosaic.lib.objects.v2x.V2xMessage;
 import org.eclipse.mosaic.lib.objects.vehicle.VehicleData;
 import org.eclipse.mosaic.lib.util.scheduling.Event;
 import org.eclipse.mosaic.rti.TIME;
@@ -20,26 +21,43 @@ import org.eclipse.mosaic.lib.objects.vehicle.VehicleRoute;
 import org.eclipse.mosaic.fed.application.app.api.VehicleApplication;
 
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.*;
 
-public final class VehicleToTrafficLightApp extends AbstractApplication<VehicleOperatingSystem> implements VehicleApplication, CommunicationApplication{
+import static src.main.java.RSU_Program.RSU_pos;
+
+public final class MainCarApp extends AbstractApplication<VehicleOperatingSystem> implements VehicleApplication, CommunicationApplication{
 
     private final static long TIME_INTERVAL = TIME.SECOND;
     private boolean ackRSU = false;
 
-    private HashMap<String, String> vizinhos = new HashMap<>();   // key -> name_carro ; value -> position_carro
+    private final HashMap<String, CartesianPoint> vizinhos = new HashMap<>();   // key -> name_carro ; value -> position_carro
 
     /*
     ##########################################################################################################################################3
     */
 
-    public void putVizinho(String id, String pos){
+    public void putVizinho(String id, CartesianPoint pos){
         this.vizinhos.put(id, pos);
+    }
+
+    /*
+    ##########################################################################################################################################3
+    */
+
+    public boolean inRangeRSU(){
+
+        boolean res;
+        CartesianPoint mypos = Objects.requireNonNull(getOs().getVehicleData()).getPosition().toCartesian();
+        getLog().infoSimTime(this, "distance to RSU = {}", RSU_pos.distanceTo(mypos));
+
+        if(RSU_pos.distanceTo(mypos) <= RSU_Program.MIN_DISTANCE_RSU){
+            res = true;
+        }
+        else{
+            res = false;
+        }
+
+        return res;
     }
 
     /*
@@ -73,8 +91,18 @@ public final class VehicleToTrafficLightApp extends AbstractApplication<VehicleO
     ##########################################################################################################################################3
     */
 
+    private double distanceToRSU(CartesianPoint otherPos) {
+
+        return otherPos.distanceTo(RSU_pos);
+
+    }
+
+    /*
+    ##########################################################################################################################################3
+    */
+
     // Tenta enviar mensagem à RSU em broadcast
-    private void sendMsgToRSU(String message_to_send) {
+    private void sendMsgToRSU(String segredo, String rota, String id_Carro) {
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
 
         final MessageRouting routing = getOperatingSystem()
@@ -82,85 +110,70 @@ public final class VehicleToTrafficLightApp extends AbstractApplication<VehicleO
                 .createMessageRouting()
                 .topoCast("rsu_0", 1);
 
-        getOs().getAdHocModule().sendV2xMessage(new GreenWaveMsg(routing, message_to_send));
-        getLog().infoSimTime(this, "Sent to RSU = '{}'", message_to_send);
+        GreenWaveMsg message_to_send = new GreenWaveMsg(routing, segredo, rota, id_Carro);
+        getOs().getAdHocModule().sendV2xMessage(message_to_send);
+        getLog().infoSimTime(this, "Sent to RSU = '{}'", message_to_send.toString());
 
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+
     }
 
     /*
     ##########################################################################################################################################3
     */
 
-    public static CartesianPoint parseXY(String input) {
-        // input = CartesianPoint{x=120.30,y=528.64,z=0.00}
-        // Define o padrão da expressão regular para capturar os valores de x e y
-        Pattern pattern = Pattern.compile("x=([\\d.]+),y=([\\d.]+)");
-        Matcher matcher = pattern.matcher(input);
-
-        double[] xy = new double[2];
-
-        if (matcher.find()) {
-            // Captura os valores de x e y a partir dos grupos de captura
-            xy[0] = Double.parseDouble(matcher.group(1));
-            xy[1] = Double.parseDouble(matcher.group(2));
-        } else {
-            throw new IllegalArgumentException("A string fornecida não está no formato esperado.");
-        }
-
-        return new MutableCartesianPoint(xy[0], xy[1], 0);
-    }
-
     // Tenta enviar mensagem ao carro mais longe na sua range
-    public void sendMsgToCars(String message_to_send) {
+    public void sendMsgToCars(String segredo, String rota, String id_Carro){
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
 
-        //List<SurroundingVehicle> vizinhos = getOs().getVehicleData().getVehiclesInSight();
-
-         // imprimir vizinhos
-        for(String car_name : vizinhos.keySet()){
-            getLog().infoSimTime(this, "Vizinho: {}", car_name);
-        }
-
-         if(vizinhos.isEmpty()){
+         if(this.vizinhos.isEmpty()){
              getLog().infoSimTime(this, "I have no neighbours to send!");
              getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
          }
 
          else {
 
-             CartesianPoint mypos = getOs().getVehicleData().getPosition().toCartesian();
-             double temp = 0;
+             // imprimir vizinhos
+             for(String car_name : this.vizinhos.keySet()){
+                 getLog().infoSimTime(this, "Vizinho: {}", car_name);
+             }
 
-             double currentDirection = getOs().getVehicleData().getHeading();
+             CartesianPoint mypos = Objects.requireNonNull(getOs().getVehicleData()).getPosition().toCartesian();
+             double temp = 700;
 
-             String carroMaisLonge = "";    // carro mais proximo da RSU dentro da range do carro
+             //double currentDirection = getOs().getVehicleData().getHeading();
 
-             for (Map.Entry e : vizinhos.entrySet()) {
-                 String pos = (String) e.getValue();
+             String carro_para_enviar = "";
+
+             for (Map.Entry e : this.vizinhos.entrySet()) {
+                 CartesianPoint pos = (CartesianPoint) e.getValue();
                  String name = (String) e.getKey();
 
                  getLog().infoSimTime(this, "Position = {}", pos);
 
-                 CartesianPoint pos_cart = parseXY(pos);
+                 //double test = pos.distanceTo(mypos);
+                 double test2 = distanceToRSU(pos);
 
-                 if (pos_cart.distanceTo(mypos) >= temp && isInFront(mypos, pos_cart, currentDirection)) {
-                     temp = pos_cart.distanceTo(mypos);
-                     carroMaisLonge = name;
+                 // manda para o vizinho que estiver mais perto da RSU
+                 if (test2 <= temp /* && isInFront(mypos, pos, currentDirection)*/) {
+                     temp = test2;
+                     carro_para_enviar = name;
                  }
              }
 
-             final MessageRouting routing = getOperatingSystem()
-                     .getAdHocModule()
-                     .createMessageRouting()
-                     .topoCast(carroMaisLonge, 1);
+             if (!carro_para_enviar.equals("")) {
 
+                 final MessageRouting routing = getOperatingSystem()
+                         .getAdHocModule()
+                         .createMessageRouting()
+                         .topoCast(carro_para_enviar, 4);
 
-             getOs().getAdHocModule().sendV2xMessage(new GreenWaveMsg(routing, message_to_send));
-             getLog().infoSimTime(this, "Sent secret passphrase to {}", carroMaisLonge);
+                 GreenWaveMsg message_to_send = new GreenWaveMsg(routing, segredo, rota, id_Carro);
+                 getOs().getAdHocModule().sendV2xMessage(message_to_send);
+                 getLog().infoSimTime(this, "Resent to {} - GreenWaveMsg origin in {}", carro_para_enviar, id_Carro);
 
-
-             getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+                getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+             }
          }
     }
 
@@ -184,28 +197,40 @@ public final class VehicleToTrafficLightApp extends AbstractApplication<VehicleO
 
             String message = receivedV2xMessage.getMessage().toString();
 
-            // primeiro manda para a RSU
-            sendMsgToRSU(message);
+            String id_source = receivedV2xMessage.getMessage().getRouting().getSource().getSourceName();
+            getLog().infoSimTime(this, "Received GreenWaveMsg  = '{}' from {}", message, id_source);
 
-            String id_carro = receivedV2xMessage.getMessage().getRouting().getSource().getSourceName();
-            getLog().infoSimTime(this, "Received GreenWaveMsg  = '{}' from {}", message, id_carro);
+            String segredo = ((GreenWaveMsg) receivedV2xMessage.getMessage()).getSegredo();
+            String rota = ((GreenWaveMsg) receivedV2xMessage.getMessage()).getRota();
+            String id = ((GreenWaveMsg) receivedV2xMessage.getMessage()).getId_carro();
 
-            // reencaminha a mensagem para o que estiver mais longe dele até chegar à RSU
-            sendMsgToCars(message);
+            if(inRangeRSU()){
+                // primeiro manda para a RSU
+                sendMsgToRSU(segredo, rota, id);
+                getLog().infoSimTime(this, "Resent to RSU - GreenWaveMsg origin in {}", id);
+            }
 
-            //--------------------------------------------------------------------
+            else {
+                //nao pode receber greenwave relativo a si proprio
+                if (!id.equals(getOs().getId())){
+                    // reencaminha a mensagem para o que estiver mais longe dele até chegar à RSU
+                    sendMsgToCars(segredo, rota, id);
+                }
+            }
             getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
         }
 
-        if(receivedV2xMessage.getMessage() instanceof SendVizinhoMsg) {
+        if(receivedV2xMessage.getMessage() instanceof InterVehicleMsg) {
             getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
 
-            String id = ((SendVizinhoMsg) receivedV2xMessage.getMessage()).getID();
-            String pos = ((SendVizinhoMsg) receivedV2xMessage.getMessage()).getPos();
-            getLog().infoSimTime(this, "Received message from myself");
+            String id = ((InterVehicleMsg) receivedV2xMessage.getMessage()).getID();
+            double x = ((InterVehicleMsg) receivedV2xMessage.getMessage()).getx();
+            double y = ((InterVehicleMsg) receivedV2xMessage.getMessage()).gety();
+            getLog().infoSimTime(this, "New neighbour is {}", id);
 
             // reencaminha a mensagem para o que estiver mais longe dele até chegar à RSU
-            this.vizinhos.put(id, pos);
+            CartesianPoint posicao = new MutableCartesianPoint(x, y, 0);
+            putVizinho(id, posicao);
 
             //--------------------------------------------------------------------
             getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
@@ -226,30 +251,35 @@ public final class VehicleToTrafficLightApp extends AbstractApplication<VehicleO
         }
 
         else {
+
             // cria a mensagem a mandar
             VehicleRoute car_route = getOs().getNavigationModule().getCurrentRoute();
             String route_id = "";
-            String message_to_send = "";
-            String id_carro = getOs().getVehicleData().getName();
+            String segredo = TrafficLightApp.SECRET;
+            String id_carro = Objects.requireNonNull(getOs().getVehicleData()).getName();
+
 
             if (car_route != null) {
                 route_id = car_route.getId();
-
                 getLog().infoSimTime(this, "My Route = " + route_id);
-                message_to_send = TrafficLightApp.SECRET + " | " + route_id + " | " + id_carro;
             }
 
-            // se a manesagem tiver conteudo envia
-            if (!message_to_send.equals("")) {
+            String message_to_send = route_id + segredo + id_carro;
 
-                sendMsgToRSU(message_to_send);
-                getLog().infoSimTime(this, "Tried sending message to RSU");
-                getLog().infoSimTime(this, "ACK = {}", this.ackRSU);
+            // se a mensagem tiver conteudo envia
+            if (!route_id.equals("") && !id_carro.equals("")) {
 
-                // se não receber um ACK da RSU tenta mandar para o veículo à sua frente que esteja mais
-                // longe mas dentro do seu range
-                if (!this.ackRSU) {
-                    sendMsgToCars(message_to_send);
+                if(inRangeRSU()){
+                    sendMsgToRSU(segredo, route_id, id_carro);
+                    getLog().infoSimTime(this, "Tried sending message to RSU");
+                    getLog().infoSimTime(this, "ACK = {}", this.ackRSU);
+                }
+
+
+                else{
+                    // se não receber um ACK da RSU tenta mandar para o veículo à sua frente que esteja mais
+                    // longe mas dentro do seu range
+                    sendMsgToCars(segredo, route_id, id_carro);
                     getLog().infoSimTime(this, "Tried sending message to other car");
                     getLog().infoSimTime(this, "ACK = {}", this.ackRSU);
                 }
@@ -265,9 +295,7 @@ public final class VehicleToTrafficLightApp extends AbstractApplication<VehicleO
 
     private void sample() {
         getOs().getEventManager().addEvent(getOs().getSimulationTime() + TIME_INTERVAL, this);
-        if(!(Objects.requireNonNull(getOs().getVehicleData()).getSpeed() > 0)){
-            sendGreenWaveMessage();
-        }
+        sendGreenWaveMessage();
     }
 
     /*
@@ -275,8 +303,7 @@ public final class VehicleToTrafficLightApp extends AbstractApplication<VehicleO
     */
 
     @Override
-    public void onVehicleUpdated(/*@Nullable*/ VehicleData previousVehicleData, /*@Nonnull*/ VehicleData updatedVehicleData) {
-        final List<? extends Application> applications = getOs().getApplications();
+    public void onVehicleUpdated(VehicleData previousVehicleData, VehicleData updatedVehicleData) {
         sample();
     }
 
@@ -288,7 +315,7 @@ public final class VehicleToTrafficLightApp extends AbstractApplication<VehicleO
     public void onStartup() {
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
 
-        getLog().infoSimTime(this, "Initialize application");
+        getLog().infoSimTime(this, "Initialize {} application", getOs().getId());
         AdHocModuleConfiguration configuration = new AdHocModuleConfiguration()
                 .addRadio()
                 .channel(AdHocChannel.CCH)
@@ -298,7 +325,6 @@ public final class VehicleToTrafficLightApp extends AbstractApplication<VehicleO
         getOs().getAdHocModule().enable(configuration);
         getLog().infoSimTime(this, "Activated WLAN Module");
         getLog().infoSimTime(this, "ACK = {}", this.ackRSU);
-        //sample();
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
     }
 

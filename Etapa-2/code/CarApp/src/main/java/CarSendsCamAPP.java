@@ -1,6 +1,5 @@
 package src.main.java;
 
-//import com.sun.istack.internal.Nullable;
 import org.eclipse.mosaic.fed.application.ambassador.simulation.communication.AdHocModuleConfiguration;
 import org.eclipse.mosaic.fed.application.ambassador.simulation.communication.CamBuilder;
 import org.eclipse.mosaic.fed.application.ambassador.simulation.communication.ReceivedAcknowledgement;
@@ -19,18 +18,14 @@ import org.eclipse.mosaic.lib.objects.vehicle.VehicleData;
 import org.eclipse.mosaic.lib.util.scheduling.Event;
 
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
-public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem> implements VehicleApplication, CommunicationApplication {
+public class CarSendsCamAPP extends AbstractApplication<VehicleOperatingSystem> implements VehicleApplication, CommunicationApplication {
     /**
      * Used for choosing a RAND id for the message that is sent intra-vehicle.
      */
     private final static int MAX_ID = 1000;
-
-    //private HashMap<String, String> vizinhos = new HashMap<>();   // key -> name_carro ; value -> position_carro
 
     /*
     ##########################################################################################################################################3
@@ -40,7 +35,7 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
     public void onStartup() {
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
 
-        getLog().infoSimTime(this, "Initialize application");
+        getLog().infoSimTime(this, "Initialize {} application", getOs().getId());
         getOs().getAdHocModule().enable(new AdHocModuleConfiguration()
                 .addRadio()
                 .channel(AdHocChannel.CCH)
@@ -58,9 +53,6 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
     @Override
     public void onVehicleUpdated(/*@Nullable*/ VehicleData previousVehicleData, /*@Nonnull*/ VehicleData updatedVehicleData) {
         final List<? extends Application> applications = getOs().getApplications();
-
-
-        /*------------------------------------------------------------------------------------------*/
 
         final IntraVehicleMsg message = new IntraVehicleMsg(getOs().getId(), getRandom().nextInt(0, MAX_ID));
 
@@ -83,11 +75,12 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
         String lane = getOs().getVehicleData().getLaneAreaId(); // devolve NULL
         CartesianPoint position = getOs().getVehicleData().getPosition().toCartesian();
 
-        String message_to_send = name + " | " + position;
+        double x = position.getX();
+        double y = position.getY();
 
-        getLog().infoSimTime(this, "Sent message to others cars = '{}'", message_to_send);
+        getLog().infoSimTime(this, "Sent message to others cars = '{} | {}'", name, position);
 
-        getOs().getAdHocModule().sendV2xMessage(new InterVehicleMsg(routing, message_to_send));
+        getOs().getAdHocModule().sendV2xMessage(new InterVehicleMsg(routing, name, x, y));
 
         /*------------------------------------------------------------------------------------------*/
     }
@@ -96,56 +89,9 @@ public class EventSendingApp extends AbstractApplication<VehicleOperatingSystem>
     ##########################################################################################################################################3
     */
 
-    private void sendVizinho(String id, String pos) {
-        getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
-
-        final MessageRouting routing = getOperatingSystem()
-                .getAdHocModule()
-                .createMessageRouting()
-                .topoCast(getOs().getId(), 1);  // mensagem para ele proprio
-
-        getOs().getAdHocModule().sendV2xMessage(new SendVizinhoMsg(routing, id, pos));
-        getLog().infoSimTime(this, "Sent message to myself");
-
-        getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
-    }
-
     @Override
     public void onMessageReceived(ReceivedV2xMessage receivedV2xMessage) {
-
-        String position = "";
-        String id_carro = "";
-        String lane = "";
-
-        if(receivedV2xMessage.getMessage() instanceof InterVehicleMsg) {
-            getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
-
-            //if(receivedV2xMessage.getMessage().equals())
-
-            String message = receivedV2xMessage.getMessage().toString();
-            getLog().infoSimTime(this, "Received InterVehicleMsg = '{}'", message);
-
-
-            String padrao = "\\|"; // Divide na barra vertical, removendo espaços em branco antes e depois
-
-            // Dividir a frase em secret e route
-            String[] partes = ((InterVehicleMsg) receivedV2xMessage.getMessage()).getMessage().split(padrao);
-
-            if (partes.length == 2) {
-                id_carro = "" + partes[0].trim(); // Remover espaços em branco antes e depois do secret
-                //lane = "" + partes[1].trim(); // Remover espaços em branco antes e depois do route
-                position = "" + partes[1].trim(); // Remover espaços em branco antes e depois do route
-                getLog().infoSimTime(this, "Position = {}", position);
-            } else {
-                System.out.println("Formato da frase inválido.");
-            }
-
-            //vizinhos.put(id_carro, position);
-            sendVizinho(id_carro, position);
-
-            //--------------------------------------------------------------------
-            getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
-        }
+        //nop
     }
 
     /*

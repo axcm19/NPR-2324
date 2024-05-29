@@ -21,9 +21,11 @@ public final class RSUMsg extends V2xMessage {
         return message;
     }
 
+
     public EncodedPayload getPayload() {
-        return this.payload;
+        return null;
     }
+
 
     public EncodedPayload getPayLoad() {
         return null;

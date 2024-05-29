@@ -3,9 +3,8 @@
     {
       "name": "Car",
       "applications": [
-                "src.main.java.EventSendingApp",
-                "src.main.java.EventProcessingApp",
-		"src.main.java.VehicleToTrafficLightApp"
+                "src.main.java.CarSendsCamAPP",
+		"src.main.java.MainCarApp"
       ],
       "length": "4.0 m",
       "minGap": "2.5 m",
@@ -31,7 +30,7 @@
     {
             "name": "TrafficLightCar",
             "applications": [
-                "src.main.java.VehicleToTrafficLightApp"
+                "src.main.java.MainCarApp"
             ],
             "color": "green"
     },
@@ -68,8 +67,8 @@
       "startingTime": "5 s",
       "maxTime": "700 s",
       "targetFlow": 350.0,
-      "spawningMode": "POISSON",
-      "maxNumberVehicles": 500,
+      "spawningMode": "CONSTANT",
+      "maxNumberVehicles": 100,
       "laneSelectionMode": "BEST",
       "departSpeed": "0.0 m/s",
       "departSpeedMode": "MAXIMUM",
@@ -88,8 +87,8 @@
       "startingTime": "5 s",
       "maxTime": "700 s",
       "targetFlow": 350.0,
-      "spawningMode": "POISSON",
-      "maxNumberVehicles": 500,
+      "spawningMode": "CONSTANT",
+      "maxNumberVehicles": 100,
       "laneSelectionMode": "BEST",
       "departSpeed": "0.0 m/s",
       "departSpeedMode": "MAXIMUM",
