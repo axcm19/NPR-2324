@@ -22,9 +22,8 @@ import java.util.List;
 import java.util.Objects;
 
 public class CarSendsCamAPP extends AbstractApplication<VehicleOperatingSystem> implements VehicleApplication, CommunicationApplication {
-    /**
-     * Used for choosing a RAND id for the message that is sent intra-vehicle.
-     */
+
+    //Used for choosing a RAND id for the message that is sent intra-vehicle.
     private final static int MAX_ID = 1000;
 
     /*
@@ -51,7 +50,7 @@ public class CarSendsCamAPP extends AbstractApplication<VehicleOperatingSystem> 
     */
 
     @Override
-    public void onVehicleUpdated(/*@Nullable*/ VehicleData previousVehicleData, /*@Nonnull*/ VehicleData updatedVehicleData) {
+    public void onVehicleUpdated(VehicleData previousVehicleData, VehicleData updatedVehicleData) {
         final List<? extends Application> applications = getOs().getApplications();
 
         final IntraVehicleMsg message = new IntraVehicleMsg(getOs().getId(), getRandom().nextInt(0, MAX_ID));
@@ -72,7 +71,6 @@ public class CarSendsCamAPP extends AbstractApplication<VehicleOperatingSystem> 
                 .topoBroadCast();
 
         String name = Objects.requireNonNull(getOs().getVehicleData()).getName();
-        String lane = getOs().getVehicleData().getLaneAreaId(); // devolve NULL
         CartesianPoint position = getOs().getVehicleData().getPosition().toCartesian();
 
         double x = position.getX();

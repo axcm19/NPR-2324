@@ -48,6 +48,10 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
     }
 
+    /*
+    ##########################################################################################################################################3
+    */
+
     private void setGreen_r0() {
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
 
@@ -104,7 +108,6 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
             return;
         }
 
-
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
 
         getLog().infoSimTime(this, "Received message from RSU {}", receivedV2xMessage.getMessage().toString());
@@ -116,7 +119,6 @@ public final class TrafficLightApp extends AbstractApplication<TrafficLightOpera
             getLog().infoSimTime(this, "Vehicle that sent message is too far away.");
             return;
         }
-
 
         if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && receivedV2xMessage.getMessage().toString().equals("0")) {
             getLog().infoSimTime(this, "Changing to program 0");

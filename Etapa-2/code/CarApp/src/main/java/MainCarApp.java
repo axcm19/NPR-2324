@@ -64,44 +64,15 @@ public final class MainCarApp extends AbstractApplication<VehicleOperatingSystem
     ##########################################################################################################################################3
     */
 
-    private boolean isInFront(CartesianPoint mypos, CartesianPoint otherPos, double currentDirection) {
-        // Vetor da posição do veículo atual ao carro vizinho
-        double dx = otherPos.getX() - mypos.getX();
-        double dy = otherPos.getY() - mypos.getY();
-
-        // Ângulo do vetor em relação ao norte
-        double angleToCar = Math.toDegrees(Math.atan2(dy, dx));
-        if (angleToCar < 0) {
-            angleToCar += 360;
-        }
-
-        // Verifique se o ângulo está dentro de um intervalo de 45 graus da direção do veículo
-        double minAngle = (currentDirection - 45 + 360) % 360;
-        double maxAngle = (currentDirection + 45) % 360;
-
-        if (minAngle > maxAngle) {
-            // O intervalo cruza o norte (0 graus)
-            return angleToCar >= minAngle || angleToCar <= maxAngle;
-        } else {
-            return angleToCar >= minAngle && angleToCar <= maxAngle;
-        }
-    }
-
-    /*
-    ##########################################################################################################################################3
-    */
-
     private double distanceToRSU(CartesianPoint otherPos) {
-
         return otherPos.distanceTo(RSU_pos);
-
     }
 
     /*
     ##########################################################################################################################################3
     */
 
-    // Tenta enviar mensagem à RSU em broadcast
+    // Tenta enviar mensagem à RSU em topocast
     private void sendMsgToRSU(String segredo, String rota, String id_Carro) {
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
 
@@ -122,59 +93,77 @@ public final class MainCarApp extends AbstractApplication<VehicleOperatingSystem
     ##########################################################################################################################################3
     */
 
-    // Tenta enviar mensagem ao carro mais longe na sua range
+    // Tenta enviar mensagem ao vizinho que esteja mais perto da RSU
     public void sendMsgToCars(String segredo, String rota, String id_Carro){
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
 
-         if(this.vizinhos.isEmpty()){
-             getLog().infoSimTime(this, "I have no neighbours to send!");
-             getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
-         }
+        if(this.vizinhos.isEmpty()){
+            getLog().infoSimTime(this, "I have no neighbours to send!");
+            getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+        }
 
-         else {
+        else {
+            // imprimir vizinhos
+            for (String car_name : this.vizinhos.keySet()) {
+                getLog().infoSimTime(this, "Vizinho: {}", car_name);
+            }
 
-             // imprimir vizinhos
-             for(String car_name : this.vizinhos.keySet()){
-                 getLog().infoSimTime(this, "Vizinho: {}", car_name);
-             }
+            double temp = 700;
 
-             CartesianPoint mypos = Objects.requireNonNull(getOs().getVehicleData()).getPosition().toCartesian();
-             double temp = 700;
+            String carro_para_enviar = "";
 
-             //double currentDirection = getOs().getVehicleData().getHeading();
+            for (Map.Entry e : this.vizinhos.entrySet()) {
+                CartesianPoint pos = (CartesianPoint) e.getValue();
+                String name = (String) e.getKey();
 
-             String carro_para_enviar = "";
+                getLog().infoSimTime(this, "Position = {}", pos);
 
-             for (Map.Entry e : this.vizinhos.entrySet()) {
-                 CartesianPoint pos = (CartesianPoint) e.getValue();
-                 String name = (String) e.getKey();
+                double dist = distanceToRSU(pos);
 
-                 getLog().infoSimTime(this, "Position = {}", pos);
+                // manda para o vizinho que estiver mais perto da RSU
+                if (dist <= temp) {
+                    temp = dist;
+                    carro_para_enviar = name;
+                }
+            }
 
-                 //double test = pos.distanceTo(mypos);
-                 double test2 = distanceToRSU(pos);
+            if (!carro_para_enviar.equals("")) {
 
-                 // manda para o vizinho que estiver mais perto da RSU
-                 if (test2 <= temp /* && isInFront(mypos, pos, currentDirection)*/) {
-                     temp = test2;
-                     carro_para_enviar = name;
-                 }
-             }
+                final MessageRouting routing = getOperatingSystem()
+                        .getAdHocModule()
+                        .createMessageRouting()
+                        .topoCast(carro_para_enviar, 4);
 
-             if (!carro_para_enviar.equals("")) {
-
-                 final MessageRouting routing = getOperatingSystem()
-                         .getAdHocModule()
-                         .createMessageRouting()
-                         .topoCast(carro_para_enviar, 4);
-
-                 GreenWaveMsg message_to_send = new GreenWaveMsg(routing, segredo, rota, id_Carro);
-                 getOs().getAdHocModule().sendV2xMessage(message_to_send);
-                 getLog().infoSimTime(this, "Resent to {} - GreenWaveMsg origin in {}", carro_para_enviar, id_Carro);
+                GreenWaveMsg message_to_send = new GreenWaveMsg(routing, segredo, rota, id_Carro);
+                getOs().getAdHocModule().sendV2xMessage(message_to_send);
+                getLog().infoSimTime(this, "Resent to {} - GreenWaveMsg origin in {}", carro_para_enviar, id_Carro);
 
                 getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
-             }
-         }
+            }
+        }
+    }
+
+    /*
+    ##########################################################################################################################################3
+    */
+
+    // Reenvia ACK de volta à origem
+    public void resendACK(String final_receiver, String message){
+        getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+
+        if (!final_receiver.equals("")) {
+
+            final MessageRouting routing = getOperatingSystem()
+                    .getAdHocModule()
+                    .createMessageRouting()
+                    .topoCast(final_receiver, 4);
+
+            RSUMsg message_to_send = new RSUMsg(routing, message, final_receiver);
+            getOs().getAdHocModule().sendV2xMessage(message_to_send);
+            getLog().infoSimTime(this, "Resent to {} - ACK origin in RSU", final_receiver);
+
+            getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+        }
     }
 
     /*
@@ -184,12 +173,26 @@ public final class MainCarApp extends AbstractApplication<VehicleOperatingSystem
     @Override
     public void onMessageReceived(ReceivedV2xMessage receivedV2xMessage) {
 
-        if (receivedV2xMessage.getMessage() instanceof RSUMsg && receivedV2xMessage.getMessage().toString().equals("ACK")) {
-            // quando recebe da RSU
-            getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
-            getLog().infoSimTime(this, "Received ACK from RSU at ", getOs().getSimulationTime());
-            this.ackRSU = true;
-            getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+        if (receivedV2xMessage.getMessage() instanceof RSUMsg) {
+
+            String myID = getOs().getId();
+            String receiver_id = ((RSUMsg) receivedV2xMessage.getMessage()).getId_final_receiver();
+            String ACKmessage = ((RSUMsg) receivedV2xMessage.getMessage()).getMessage();
+            String who_sent = receivedV2xMessage.getMessage().getRouting().getSource().getSourceName();
+
+            if(receiver_id.equals(myID)) {
+                // quando recebe da RSU
+                getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+                getLog().infoSimTime(this, "Received ACK with origin at RSU from {} at {}", who_sent, getOs().getSimulationTime());
+                this.ackRSU = true;
+                getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
+            }
+
+            else{
+                if(vizinhos.containsKey(receiver_id)){
+                    resendACK(receiver_id, ACKmessage);
+                }
+            }
         }
 
         if(receivedV2xMessage.getMessage() instanceof GreenWaveMsg) {
@@ -205,13 +208,13 @@ public final class MainCarApp extends AbstractApplication<VehicleOperatingSystem
             String id = ((GreenWaveMsg) receivedV2xMessage.getMessage()).getId_carro();
 
             if(inRangeRSU()){
-                // primeiro manda para a RSU
+                // reenvia para a RSU se estiver dentro do seu range
                 sendMsgToRSU(segredo, rota, id);
                 getLog().infoSimTime(this, "Resent to RSU - GreenWaveMsg origin in {}", id);
             }
 
             else {
-                //nao pode receber greenwave relativo a si proprio
+                // nao pode receber greenwave relativo a si proprio
                 if (!id.equals(getOs().getId())){
                     // reencaminha a mensagem para o que estiver mais longe dele até chegar à RSU
                     sendMsgToCars(segredo, rota, id);
@@ -228,11 +231,10 @@ public final class MainCarApp extends AbstractApplication<VehicleOperatingSystem
             double y = ((InterVehicleMsg) receivedV2xMessage.getMessage()).gety();
             getLog().infoSimTime(this, "New neighbour is {}", id);
 
-            // reencaminha a mensagem para o que estiver mais longe dele até chegar à RSU
+            // adiciona o vizinho ao seu Map
             CartesianPoint posicao = new MutableCartesianPoint(x, y, 0);
             putVizinho(id, posicao);
 
-            //--------------------------------------------------------------------
             getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
         }
     }
@@ -244,7 +246,7 @@ public final class MainCarApp extends AbstractApplication<VehicleOperatingSystem
     private void sendGreenWaveMessage(){
         getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
 
-        // se já tem o ACK não comunica com ninguém
+        // se já tem o ACK não volta a mandar GreenWave para mais ninguém
         if (this.ackRSU) {
             getLog().infoSimTime(this, "Already have ACK");
             getLog().infoSimTime(this, "-------------------------------------------------------------------------------------");
@@ -264,8 +266,6 @@ public final class MainCarApp extends AbstractApplication<VehicleOperatingSystem
                 getLog().infoSimTime(this, "My Route = " + route_id);
             }
 
-            String message_to_send = route_id + segredo + id_carro;
-
             // se a mensagem tiver conteudo envia
             if (!route_id.equals("") && !id_carro.equals("")) {
 
@@ -275,10 +275,8 @@ public final class MainCarApp extends AbstractApplication<VehicleOperatingSystem
                     getLog().infoSimTime(this, "ACK = {}", this.ackRSU);
                 }
 
-
                 else{
-                    // se não receber um ACK da RSU tenta mandar para o veículo à sua frente que esteja mais
-                    // longe mas dentro do seu range
+                    // se não estiver na range da RSU tenta mandar para o vizinho mais proximo dela
                     sendMsgToCars(segredo, route_id, id_carro);
                     getLog().infoSimTime(this, "Tried sending message to other car");
                     getLog().infoSimTime(this, "ACK = {}", this.ackRSU);
