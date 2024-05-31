@@ -1,4 +1,4 @@
-package src.main.java;//import InterVehicleMsg;
+package src.main.java;
 
 import org.apache.commons.lang3.Validate;
 import org.eclipse.mosaic.fed.application.ambassador.simulation.communication.AdHocModuleConfiguration;
@@ -16,13 +16,16 @@ import org.eclipse.mosaic.lib.util.scheduling.EventProcessor;
 
 import java.util.*;
 
-import static src.main.java.TrafficLightApp.*;
 
 public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem> implements CommunicationApplication {
+
    private static final long TIME_INTERVAL = 2000000000L;
    private HashMap<String, Set<String>> carros = new HashMap<>();   // key -> id_route ; value -> set de ids de carros
    private Set<String> temp = new HashSet<>();   // value -> set de ids de todos os carros que já passaram
 
+   /*
+    ##########################################################################################################################################3
+    */
 
    private void sendAdHocBroadcast() {
       MessageRouting routing = ((RoadSideUnitOperatingSystem)this.getOs()).getAdHocModule().createMessageRouting().viaChannel(AdHocChannel.CCH).topoBroadCast();
@@ -30,11 +33,19 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
       ((RoadSideUnitOperatingSystem)this.getOs()).getAdHocModule().sendV2xMessage(message);
    }
 
+   /*
+    ##########################################################################################################################################3
+    */
+
    public void sample() {
       ((RoadSideUnitOperatingSystem)this.getOs()).getEventManager().addEvent(((RoadSideUnitOperatingSystem)this.getOs()).getSimulationTime() + 2000000000L, new EventProcessor[]{this});
       this.getLog().infoSimTime(this, "Sending out AdHoc broadcast", new Object[0]);
       this.sendAdHocBroadcast();
    }
+
+   /*
+    ##########################################################################################################################################3
+    */
 
    public void onStartup() {
       this.getLog().infoSimTime(this, "Initialize application", new Object[0]);
@@ -47,14 +58,25 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
       this.carros.put("r_1", r1_cars);
    }
 
+   /*
+    ##########################################################################################################################################3
+    */
+
    public void onShutdown() {
       this.getLog().infoSimTime(this, "Shutdown application", new Object[0]);
    }
+
+   /*
+    ##########################################################################################################################################3
+    */
 
    public void processEvent(Event event) throws Exception {
       this.sample();
    }
 
+   /*
+    ##########################################################################################################################################3
+    */
 
    private void sendTopoBroadcastMessage(String message) {
 
@@ -68,6 +90,9 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
       getLog().infoSimTime(this, "Sent message for Traffic Ligth");
    }
 
+   /*
+    ##########################################################################################################################################3
+    */
 
    @Override
    public void onMessageReceived(ReceivedV2xMessage receivedV2xMessage) {
@@ -75,7 +100,6 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
       String secret = "";
       String route = "";
       String id_carro = "";
-
 
       id_carro = receivedV2xMessage.getMessage().getRouting().getSource().getSourceName();
 
@@ -98,11 +122,10 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
 
       getLog().infoSimTime(this, "Received GreenWaveMsg from {}", route);
 
-      //if (!((GreenWaveMsg) receivedV2xMessage.getMessage()).getMessage().equals(SECRET)) {
-      if (!(secret.equals(SECRET))) {
+      if (!(secret.equals(TrafficLightApp.SECRET))) {
          return;
       }
-      getLog().infoSimTime(this, "Received correct passphrase: {}", SECRET);
+      getLog().infoSimTime(this, "Received correct passphrase: {}", TrafficLightApp.SECRET);
 
       // adiciona o id do carro ao set da route
       if(!(temp.contains(id_carro))) {
@@ -115,7 +138,7 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
       Validate.notNull(receivedV2xMessage.getMessage().getRouting().getSource().getSourcePosition(),
               "The source position of the sender cannot be null");
       if (!(receivedV2xMessage.getMessage().getRouting().getSource().getSourcePosition()
-              .distanceTo(getOs().getPosition()) <= MIN_DISTANCE)) {
+              .distanceTo(getOs().getPosition()) <= TrafficLightApp.MIN_DISTANCE)) {
          getLog().infoSimTime(this, "Vehicle that sent message is too far away.");
          return;
       }
@@ -129,7 +152,7 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
          carros.get("r_0").clear();
          getLog().infoSimTime(this, "Cleared: Counter R0 = {} , Counter R1 = {}", carros.get("r_0").size(), counter_r1);
       }
-      //else if (DEFAULT_PROGRAM.equals(getOs().getCurrentProgram().getProgramId()) && counter_r0 < counter_r1) {
+
       else if (5 <= counter_r1 && counter_r1 > counter_r0){
          getLog().infoSimTime(this, "Counter R0 = {} , Counter R1 = {}", counter_r0, counter_r1);
          sendTopoBroadcastMessage("2");
@@ -138,6 +161,10 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
       }
 
    }
+
+   /*
+    ##########################################################################################################################################3
+    */
 
    @Override
    public void onAcknowledgementReceived(ReceivedAcknowledgement receivedAcknowledgement) {
@@ -153,5 +180,9 @@ public class RSU_Program extends AbstractApplication<RoadSideUnitOperatingSystem
    public void onMessageTransmitted(V2xMessageTransmission v2xMessageTransmission) {
 
    }
+
+   /*
+    ##########################################################################################################################################3
+    */
 
 }

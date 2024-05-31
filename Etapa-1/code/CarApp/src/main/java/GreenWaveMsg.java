@@ -4,8 +4,6 @@ import org.eclipse.mosaic.lib.objects.v2x.EncodedPayload;
 import org.eclipse.mosaic.lib.objects.v2x.MessageRouting;
 import org.eclipse.mosaic.lib.objects.v2x.V2xMessage;
 
-//import javax.annotation.Nonnull;
-
 public final class GreenWaveMsg extends V2xMessage {
     private final String         message;
     private final EncodedPayload payload;
